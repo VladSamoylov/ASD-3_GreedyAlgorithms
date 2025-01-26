@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <chrono>
 #include <tuple>
+#include <queue>
+#include <fstream>
 
 using namespace std;
 
@@ -153,12 +155,424 @@ void SoldOut::GreedyChoice() {
 	cout << "The total profit : " << ANSI_COLOR_PURPLE << profit << ANSI_COLOR_RESET << "$" << endl;
 }
 
+struct Node {
+	char symbol;
+	int freq;
+	Node* left;
+	Node* right;
+
+	Node(char symbol, int freq) : symbol(symbol), freq(freq), left(nullptr), right(nullptr) { }
+};
+
+struct Compare {
+	bool operator()(Node* left, Node* right) {
+		return left->freq > right->freq;
+	}
+};
+
+class Haffman {
+private:
+	unordered_map<char, int> frequencies;
+	unordered_map<char, string> codesTable;
+	Node* root;
+public:
+	void SetFrequenciesLetter(const string&);
+	void ShowFreequenciesLetter();
+	void BuildHaffmanTree();
+	void BuildTableCodes(Node*, const string&);
+	void EncodingFileData(const string&, const string&, const string&);
+	void DecodingFileData(const string&);
+	void DecodingFileDataBin(const string&);
+	void SerializeTree(Node*, ofstream&);
+	void SerializeTreeBin(Node*, ofstream&);
+	Node* DeserializeTree(ifstream&);
+	Node* DeserializeTreeBin(ifstream&);
+	void ShowHaffmanTree(Node*);
+	~Haffman() { this->DeleteHaffmanTree(this->root); }
+	void DeleteHaffmanTree(Node*);
+};
+
+void Haffman::SetFrequenciesLetter(const string& txt) {
+
+	for (const char& s : txt) {
+		this->frequencies[s]++;
+	}
+}
+
+void Haffman::ShowFreequenciesLetter() {
+
+	cout << "\n!-The frequencies table of symbols:" << endl;
+	for (const auto& [key, value] : this->frequencies) {
+		if (key == '\n') cout << "The symbol : " << ANSI_COLOR_RED << "/n" << ANSI_COLOR_RESET;
+		else if (key == '\t') cout << "The symbol : " << ANSI_COLOR_RED << "/t" << ANSI_COLOR_RESET;
+		else cout << "The symbol : " << ANSI_COLOR_RED << key << ANSI_COLOR_RESET;
+		cout << " has frequencies - " << ANSI_COLOR_GREEN << value << ANSI_COLOR_RESET << endl;
+	} cout << endl;
+}
+
+void Haffman::BuildHaffmanTree() {
+
+	priority_queue<Node*, vector<Node*>, Compare> pQueue;
+
+	for (const auto& [key, value] : this->frequencies) {
+		pQueue.push(new Node(key, value));
+	}
+
+	while (pQueue.size() != 1) {
+		Node* left = pQueue.top(); pQueue.pop();
+		Node* right = pQueue.top(); pQueue.pop();
+		Node* parent = new Node('\0', left->freq + right->freq);
+		parent->left = left;
+		parent->right = right;
+		pQueue.push(parent);
+	}
+	this->root = pQueue.top();
+}
+
+void Haffman::ShowHaffmanTree(Node* parent) {
+
+	if (!parent) return;
+	if (parent->symbol == '\n') cout << "The parent \"" << ANSI_COLOR_PURPLE << "/n" << ANSI_COLOR_RESET;
+	else if (parent->symbol == '\t') cout << "The parent \"" << ANSI_COLOR_PURPLE << "/t" << ANSI_COLOR_RESET;
+	else cout << "The parent \"" << ANSI_COLOR_PURPLE << parent->symbol << ANSI_COLOR_RESET;
+	if (parent->left && parent->right) {
+		if (parent->left->symbol == '\n') cout << " \" has chieldren : \"" ANSI_COLOR_RED << "/n" << ANSI_COLOR_RESET << "\"";
+		else if (parent->left->symbol == '\t') cout << " \" has chieldren : \"" ANSI_COLOR_RED << "/t" << ANSI_COLOR_RESET << "\"";
+		else cout << " \" has chieldren : \"" ANSI_COLOR_RED << parent->left->symbol << ANSI_COLOR_RESET << "\"";
+		
+		if (parent->right->symbol == '\n')  cout << " (left) \"" << ANSI_COLOR_BLUE << "/n" << ANSI_COLOR_RESET << "\" (right) " << endl;
+		else if (parent->right->symbol == '\t') cout << " (left) \"" << ANSI_COLOR_BLUE << "/t" << ANSI_COLOR_RESET << "\" (right) " << endl;
+		else cout << " (left) \"" << ANSI_COLOR_BLUE << parent->right->symbol << ANSI_COLOR_RESET << "\" (right) " << endl;
+		
+		this->ShowHaffmanTree(parent->left);
+		this->ShowHaffmanTree(parent->right);
+	}
+	else cout << "\" hasn`t children " << endl;
+}
+
+void Haffman::DeleteHaffmanTree(Node* node) {
+
+	if (!node) return;
+	DeleteHaffmanTree(node->left);
+	DeleteHaffmanTree(node->right);
+	delete node;
+}
+
+void Haffman::BuildTableCodes(Node* node, const string& code) {
+
+	if (!node) return;
+	if (node->symbol != '\0') {
+		this->codesTable[node->symbol] = code;
+		if (node->symbol == '\n') cout << "The letter : " << ANSI_COLOR_RED << "/n" << ANSI_COLOR_RESET;
+		else if (node->symbol == '\t') cout << "The letter : " << ANSI_COLOR_RED << "/t" << ANSI_COLOR_RESET;
+		else cout << "The letter : " << ANSI_COLOR_RED << node->symbol << ANSI_COLOR_RESET;
+		cout << " has code - " << ANSI_COLOR_GREEN << code << ANSI_COLOR_RESET << endl;
+	}
+	this->BuildTableCodes(node->left, code + "0");
+	this->BuildTableCodes(node->right, code + "1");
+}
+
+void Haffman::SerializeTree(Node* node, ofstream& ofs) {
+
+	if (!node) return;
+	if (!node->left && !node->right) {
+		if (node->symbol == ' ') ofs << "L S ";
+		else if (node->symbol == '\n') ofs << "L E ";
+		else if (node->symbol == '\t') ofs << "L T ";
+		else ofs << "L " << node->symbol << " ";
+	}
+	else ofs << "I ";
+	this->SerializeTree(node->left, ofs);
+	this->SerializeTree(node->right, ofs);
+}
+
+void Haffman::SerializeTreeBin(Node* node, ofstream& ofs) {
+
+	if (!node) return;
+	if (!node->left && !node->right) {
+		uint8_t type = 0; 
+		ofs.write(reinterpret_cast<char*>(&type), sizeof(type));
+		ofs.put(node->symbol);
+	}
+	else {
+		uint8_t type = 1;
+		ofs.write(reinterpret_cast<char*>(&type), sizeof(type));
+	}
+	this->SerializeTreeBin(node->left, ofs);
+	this->SerializeTreeBin(node->right, ofs);
+}
+
+Node* Haffman::DeserializeTree(ifstream& ifs) {
+
+	string type;
+	ifs >> type;
+
+	//cout << type << endl;
+	if (type == "L") {
+		char symbol;
+		ifs >> symbol;
+		//cout << "Symbol : " << symbol << endl;
+		if (symbol == 'S') return new Node(' ', 0);
+		else if (symbol == 'E') return new Node('\n', 0);
+		else if (symbol == 'T') return new Node('\t', 0);
+		else return new Node(symbol, 0);
+	}
+	else if (type == "I") {
+		Node* node = new Node('\0', 0);
+		node->left = this->DeserializeTree(ifs);
+		node->right = this->DeserializeTree(ifs);
+		return node;
+	}
+
+	return nullptr;
+}
+
+Node* Haffman::DeserializeTreeBin(ifstream& ifs) {
+
+	uint8_t type;
+	ifs.read(reinterpret_cast<char*>(&type), sizeof(type));
+
+	if (ifs.eof()) return nullptr;
+	if (type == 0) {
+		char symbol;
+		ifs.get(symbol);
+		return new Node(symbol, 0);
+	}
+	else if (type == 1) {
+		Node* node = new Node('\0', 0);
+		node->left = this->DeserializeTreeBin(ifs);
+		node->right = this->DeserializeTreeBin(ifs);
+		return node;
+	}
+
+	return nullptr;
+}
+
+void Haffman::EncodingFileData(const string& pathFileInput, const string& pathFileOutput, const string& pathFileOutputBin) {
+
+	ifstream inFile(pathFileInput);
+	if (!inFile) throw "Error : <The file isn`t found>";
+	else cout << "The data file - " << pathFileInput << " is load..." << endl;
+	string text((istreambuf_iterator<char>(inFile)), istreambuf_iterator<char>());
+	inFile.close();
+
+	cout << "The data : " << ANSI_COLOR_GREEN << text << ANSI_COLOR_RESET << endl;
+	this->SetFrequenciesLetter(text);
+	this->ShowFreequenciesLetter();
+	this->BuildHaffmanTree();
+	cout << "!-The Haffman tree:" << endl;
+	this->ShowHaffmanTree(this->root);
+	cout << "\n!-The Haffman table codes:" << endl;
+	this->BuildTableCodes(this->root, "");
+
+	ofstream outFile(pathFileOutput);
+	string bits;
+	cout << "Encoding data..." << endl;
+	this->SerializeTree(this->root, outFile);
+	outFile << endl;
+	for (const auto& symbol : text) {
+		outFile << this->codesTable[symbol];
+		bits += this->codesTable[symbol];
+	}
+	outFile.close();
+	
+	ofstream outFileBin(pathFileOutputBin, ios::binary);
+	uint8_t buffer = 0;
+	int bitCount = 0;
+	this->SerializeTreeBin(this->root, outFileBin);
+	for (const char& bit : bits) {
+		buffer = (buffer << 1) | (bit - '0');
+		bitCount++;
+		if (bitCount == 8) {
+			outFileBin.put(buffer);
+			buffer = 0;
+			bitCount = 0;
+		}
+	}
+	if (bitCount > 0) {
+		buffer = buffer << (8 - bitCount);
+		outFileBin.put(buffer);
+	}
+	outFileBin.close();
+	cout << "Encoding data finish" << endl;
+}
+
+void Haffman::DecodingFileData(const string& pathFileInput) {
+	
+	if (this->root) {
+		cout << "Delete Haffman tree" << endl;
+		this->DeleteHaffmanTree(this->root);
+	}
+	ifstream inFile(pathFileInput);
+	if(!inFile) throw "Error : <The encoded file isn`t found>";
+	else cout << "The encoded data file - " << pathFileInput << " is load..." << endl;
+
+	this->root = this->DeserializeTree(inFile);
+	if (!this->root) throw "Error: <Failed to deserialize the Huffman tree>";
+	string encodedData;
+	inFile >> encodedData;
+	inFile.close();
+	if (encodedData.empty()) throw "Error: <The encoded data is empty>";
+	cout << "Encode data : " << ANSI_COLOR_PURPLE << encodedData << ANSI_COLOR_RESET << endl;
+
+	string decodedData = "";
+	Node* currentNode = this->root;
+	for (const char& bit : encodedData) {
+		if (bit == '0') currentNode = currentNode->left;
+		else if (bit == '1') currentNode = currentNode->right;
+		if (!currentNode->left && !currentNode->right) {
+			decodedData += currentNode->symbol;
+			currentNode = this->root;
+		}
+	}
+	cout << "Decode data : " << ANSI_COLOR_LIGHTBLUE << decodedData << ANSI_COLOR_RESET << endl;
+}
+
+void Haffman::DecodingFileDataBin(const string& pathFileInput) {
+
+	if (this->root) {
+		cout << "Delete Haffman tree" << endl;
+		this->DeleteHaffmanTree(this->root);
+	}
+	ifstream inFile(pathFileInput, ios::binary);
+	if(!inFile) throw "Error : <The encoded file isn`t found>";
+	else cout << "The encoded data file - " << pathFileInput << " is load..." << endl;
+
+	this->root = this->DeserializeTreeBin(inFile);
+	string encodedData;
+
+	char byte;
+	while (inFile.get(byte)) {
+		for (int i = 7; i >= 0; i--) {
+			encodedData += ((byte >> i) & 1) ? '1' : '0';
+		}
+	}
+	inFile.close();
+	if (encodedData.empty()) throw "Error: <The encoded data is empty>";
+	cout << "Encode data : " << ANSI_COLOR_PURPLE << encodedData << ANSI_COLOR_RESET << endl;
+
+	string decodedData = "";
+	Node* currentNode = this->root;
+	for (const char& bit : encodedData) {
+		if (bit == '0') currentNode = currentNode->left;
+		else if (bit == '1') currentNode = currentNode->right;
+		if (!currentNode->left && !currentNode->right) {
+			decodedData += currentNode->symbol;
+			currentNode = this->root;
+		}
+	}
+	cout << "Decode data : " << ANSI_COLOR_LIGHTBLUE << decodedData << ANSI_COLOR_RESET << endl;
+}
+
 int main() {
 
-	cout << "Task #" << ANSI_COLOR_GREEN << ((17 - 1) % 5) + 1 << ANSI_COLOR_RESET << endl;
 	SoldOut s;
-	s.ShowCatalog();
-	s.GreedyChoice();
+	Haffman h;
+	
+	int task = 99, ltask = 99, vtask = 99;
+
+	while (task != 0) {
+		switch (task) {
+		case 1:
+			while (ltask != 0) {
+				switch (ltask) {
+				case 1:
+					s.ShowCatalog();
+					break;
+				case 2:
+					s.GreedyChoice();
+					break;
+				}
+				cout << "\n________Work with Task 1 var 17________" << endl;
+				cout << "Task #" << ANSI_COLOR_GREEN << ((17 - 1) % 5) + 1 << ANSI_COLOR_RESET << endl;
+				cout << setw(35) << left << "Show catalog of goods" << " / Enter - 1" << endl;
+				cout << setw(35) << left << "Launch greedy choice" << " / Enter - 2" << endl;
+				cout << setw(35) << left << "Back " << " / Enter - 0" << endl;
+				if (ltask != 0) {
+					try {
+						cout << "\nChoose the Task: ";
+						cin >> ltask;
+						if (cin.fail()) {
+							cin.clear();
+							cin.ignore(numeric_limits<streamsize>::max(), '\n');
+							throw "Error: <Incorrect Input Data>";
+						}
+					}
+					catch (const char* err) {
+						cerr << endl << err << endl;
+						ltask = 99;
+					}
+				}
+			}
+			break;
+		case 2:
+			while (vtask != 0) {
+				switch (vtask) {
+				case 1:
+					try {
+						h.EncodingFileData("./data/text.txt", "./data/encode_text.txt", "./data/encode_text.bin");
+					}
+					catch (const char* err) {
+						cerr << ANSI_COLOR_RED << err << ANSI_COLOR_RESET << endl;
+					}
+					break;
+				case 2:
+					try {
+						h.DecodingFileData("./data/encode_text.txt");
+						h.DecodingFileDataBin("./data/encode_text.bin");
+					}
+					catch (const char* err) {
+						cerr << ANSI_COLOR_RED << err << ANSI_COLOR_RESET << endl;
+					}
+					break;
+				}
+				cout << "\n________Work with Haffman algorithm________" << endl;
+				cout << setw(45) << left << "Encode data from file" << " / Enter - 1" << endl;
+				cout << setw(45) << left << "Decode data from file" << " / Enter - 2" << endl;
+				cout << setw(45) << left << "Back " << " / Enter - 0" << endl;
+				if (vtask != 0) {
+					try {
+						cout << "\nChoose the Task: ";
+						cin >> vtask;
+						if (cin.fail()) {
+							cin.clear();
+							cin.ignore(numeric_limits<streamsize>::max(), '\n');
+							throw "Error: <Incorrect Input Data>";
+						}
+					}
+					catch (const char* err) {
+						cerr << endl << err << endl;
+						vtask = 99;
+					}
+				}
+			}
+			break;
+		case 0:
+			break;
+		}
+		cout << "\n________________Menu of action________________" << endl;
+		cout << setw(35) << left << "Work with Task 1 var 17 " << " / Enter - 1" << endl;
+		cout << setw(35) << left << "Work with Haffman algorithm  " << " / Enter - 2" << endl;
+		cout << setw(35) << left << "Exit " << " / Enter - 0" << endl;
+
+		if (task != 0) {
+			ltask = 99;
+			vtask = 99;
+			try {
+				cout << "\nChoose the Task: ";
+				cin >> task;
+				if (cin.fail()) {
+					cin.clear();
+					cin.ignore(numeric_limits<streamsize>::max(), '\n');
+					throw "Error: <Incorrect Input Data>";
+				}
+			}
+			catch (const char* err) {
+				cerr << endl << err << endl;
+				task = 99;
+			}
+		}
+	}
 
 	return 0;
 }
