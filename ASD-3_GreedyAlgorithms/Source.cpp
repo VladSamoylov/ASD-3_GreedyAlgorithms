@@ -37,6 +37,9 @@ public:
 	double CalculateThePrice(const Goods&, const chrono::year_month_day&);
 };
 
+/**
+ * @brief Конструктор за замовченням
+ */
 SoldOut::SoldOut() {
 
 	this->n = 0;
@@ -62,6 +65,9 @@ SoldOut::SoldOut() {
 	this->AddToCatalog("sausage", 12, 30, chrono::year_month_day{ today + chrono::days(2) }, chrono::year_month_day{ today + chrono::days(14) });
 }
 
+/**
+ * @brief Метод який відображує каталог товарів
+ */
 void SoldOut::ShowCatalog() {
 	
 	double val = 0;
@@ -78,12 +84,26 @@ void SoldOut::ShowCatalog() {
 	cout << "Estimate value : " << ANSI_COLOR_PURPLE << val << ANSI_COLOR_RESET << "$" << endl;
 }
 
+/**
+ * @brief Метод додавання товару до каталогу товарів
+ * @param name Найменування товару
+ * @param price Ціна
+ * @param amount Кількість
+ * @param dateAgreements Термін домовленості доставки товару
+ * @param dateExpiration Термін придатності товару
+ */
 void SoldOut::AddToCatalog(const string& name, const double& price, const int& amount, const chrono::year_month_day& dateAgreements, const chrono::year_month_day& dateExpiration) {
 
 	this->catalog[name] = Goods(price, amount, dateAgreements, dateExpiration);
 	this->n++;
 }
 
+/**
+ * @brief Метод розрахунку прибутку в залежності від виконання домовленості
+ * @param good Товар
+ * @param currentDate Поточна дата розгляду
+ * @return Ціна, яку отримає власник за товар
+ */
 double SoldOut::CalculateThePrice(const Goods& good, const chrono::year_month_day& currentDate) {
 	
 	double price = 0.0;
@@ -104,6 +124,12 @@ double SoldOut::CalculateThePrice(const Goods& good, const chrono::year_month_da
 	return price;
 }
 
+/**
+ * @brief Метод розрахунку пріорітету для жадібного алгоритмуі
+ * @param good Товар
+ * @param currentDate Поточна дата розгляду
+ * @return Пріорітет перевезення поточного товару
+ */
 double SoldOut::CalculatePriority(const Goods& good, const chrono::year_month_day& currentDate) {
 
 	double priority = 0.0;
@@ -123,6 +149,9 @@ double SoldOut::CalculatePriority(const Goods& good, const chrono::year_month_da
 	return priority;
 }
 
+/**
+ * @brief Жадібний алгоритм для визначення стратегії, щодо перевезення товарів для мінімізації втрат власника
+ */
 void SoldOut::GreedyChoice() {
 
 	string name;
@@ -192,6 +221,10 @@ public:
 	void DeleteHaffmanTree(Node*);
 };
 
+/**
+ * @brief Метод розрахунку частоти кожного символу в рядку
+ * @param txt Рядок символів
+ */
 void Haffman::SetFrequenciesLetter(const string& txt) {
 
 	for (const char& s : txt) {
@@ -199,6 +232,9 @@ void Haffman::SetFrequenciesLetter(const string& txt) {
 	}
 }
 
+/**
+ * @brief Метод, який відображає таблицю частоти кожного символу в рядку
+ */
 void Haffman::ShowFreequenciesLetter() {
 
 	cout << "\n!-The frequencies table of symbols:" << endl;
@@ -210,6 +246,9 @@ void Haffman::ShowFreequenciesLetter() {
 	} cout << endl;
 }
 
+/**
+ * @brief Метод, який будує бінарне дерево Хаффмана
+ */
 void Haffman::BuildHaffmanTree() {
 
 	priority_queue<Node*, vector<Node*>, Compare> pQueue;
@@ -229,6 +268,10 @@ void Haffman::BuildHaffmanTree() {
 	this->root = pQueue.top();
 }
 
+/**
+ * @brief Метод, який відображає бінарне дерево Хаффмана
+ * @param parent Корінь дерева Хаффмана
+ */
 void Haffman::ShowHaffmanTree(Node* parent) {
 
 	if (!parent) return;
@@ -250,6 +293,10 @@ void Haffman::ShowHaffmanTree(Node* parent) {
 	else cout << "\" hasn`t children " << endl;
 }
 
+/**
+ * @brief Метод, який видаляє бінарне дерево Хаффмана
+ * @param node Корінь дерева Хаффмана
+ */
 void Haffman::DeleteHaffmanTree(Node* node) {
 
 	if (!node) return;
@@ -258,6 +305,11 @@ void Haffman::DeleteHaffmanTree(Node* node) {
 	delete node;
 }
 
+/**
+ * @brief Метод, який будує таблицю кодів Хаффмана
+ * @param node Корінь дерева Хаффмана
+ * @param code Код
+ */
 void Haffman::BuildTableCodes(Node* node, const string& code) {
 
 	if (!node) return;
@@ -272,6 +324,11 @@ void Haffman::BuildTableCodes(Node* node, const string& code) {
 	this->BuildTableCodes(node->right, code + "1");
 }
 
+/**
+ * @brief Метод, який відповідає за серіалізацію дерева Хаффмана у файл
+ * @param node Корінь дерева Хаффмана
+ * @param ofs Потік запису
+ */
 void Haffman::SerializeTree(Node* node, ofstream& ofs) {
 
 	if (!node) return;
@@ -286,6 +343,11 @@ void Haffman::SerializeTree(Node* node, ofstream& ofs) {
 	this->SerializeTree(node->right, ofs);
 }
 
+/**
+ * @brief Метод, який відповідає за серіалізацію дерева Хаффмана у файл бынарного типу
+ * @param node Корінь дерева Хаффмана
+ * @param ofs Файловий потік запису
+ */
 void Haffman::SerializeTreeBin(Node* node, ofstream& ofs) {
 
 	if (!node) return;
@@ -302,6 +364,11 @@ void Haffman::SerializeTreeBin(Node* node, ofstream& ofs) {
 	this->SerializeTreeBin(node->right, ofs);
 }
 
+/**
+ * @brief Метод, який відповідає за відновлення (десеріалізацію) дерева Хаффмана з файлу
+ * @param ifs Файловий потік читання
+ * @return Корінь дерева Хаффмана
+ */
 Node* Haffman::DeserializeTree(ifstream& ifs) {
 
 	string type;
@@ -327,6 +394,11 @@ Node* Haffman::DeserializeTree(ifstream& ifs) {
 	return nullptr;
 }
 
+/**
+ * @brief Метод, який відповідає за відновлення (десеріалізацію) дерева Хаффмана з бінарного файлу
+ * @param ifs Файловий потік читання
+ * @return Корінь дерева Хаффмана
+ */
 Node* Haffman::DeserializeTreeBin(ifstream& ifs) {
 
 	uint8_t type;
@@ -348,6 +420,12 @@ Node* Haffman::DeserializeTreeBin(ifstream& ifs) {
 	return nullptr;
 }
 
+/**
+ * @brief Метод, який відповідає за кодування алгоритмом Хаффмана для стиснення даних текстового файлу
+ * @param pathFileInput	Шлях до вхідного  текстового файлу
+ * @param pathFileOutput Шлях закодованого вихідного текстового файлу
+ * @param pathFileOutputBin Шлях закодованого вихідного бінарного файлу
+ */
 void Haffman::EncodingFileData(const string& pathFileInput, const string& pathFileOutput, const string& pathFileOutputBin) {
 
 	ifstream inFile(pathFileInput);
@@ -397,6 +475,10 @@ void Haffman::EncodingFileData(const string& pathFileInput, const string& pathFi
 	cout << "Encoding data finish" << endl;
 }
 
+/**
+ * @brief Метод, який відповідає за декодування алгоритмом Хаффмана текстового файлу
+ * @param pathFileInput Шлях до вхідного закодованого текстового файлу
+ */
 void Haffman::DecodingFileData(const string& pathFileInput) {
 	
 	if (this->root) {
@@ -428,6 +510,10 @@ void Haffman::DecodingFileData(const string& pathFileInput) {
 	cout << "Decode data : " << ANSI_COLOR_LIGHTBLUE << decodedData << ANSI_COLOR_RESET << endl;
 }
 
+/**
+ * @brief Метод, який відповідає за декодування алгоритмом Хаффмана бінарного файлу
+ * @param pathFileInput Шлях закодованого вхідного бінарного файлу
+ */
 void Haffman::DecodingFileDataBin(const string& pathFileInput) {
 
 	if (this->root) {
